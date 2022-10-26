@@ -1,0 +1,151 @@
+﻿<div class="w-100 text-center">
+    <h1>ABI</h1>
+</div>
+<div class="w-100">
+    <h2></h2>
+    <label class="form-label" for="customFile">Display ABI's functions</label>
+    <input type="file" class="form-control" id="abiFunctionFile" accept=".json" />
+    <button class="mt-4" onclick="onAbiFunctionLoad()">Load</button>
+    <div class="container mt-4">
+        <div class="row"><h5>Filters</h5></div>
+        <div class="row">
+            <div class="col-6 pt-4">
+                <p>Name</p>
+                <input type="text" class="form-control" id="filterTextBox" onchange="updateTable()" placeholder="Filter" />
+            </div>
+            <div class="col-6 pt-4">
+                <p>Display</p>
+
+                <div class="row">
+                    <div class="col-3">
+                        <div class="form-check">
+                            <input onchange="updateTable()" class="form-check-input" type="checkbox" value="" id="constructorCheck" checked>
+                            <label class="form-check-label" for="constructorCheck"><i class="fa-solid fa-hammer"></i> Constructor</label>
+                        </div>
+                        <div class="form-check">
+                            <input onchange="updateTable()" class="form-check-input" type="checkbox" value="" id="functionCheck" checked>
+                            <label class="form-check-label" for="functionCheck"><i class="fa-solid fa-code"></i> Function</label>
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <div class="form-check">
+                            <input onchange="updateTable()" class="form-check-input" type="checkbox" value="" id="eventCheck" checked>
+                            <label class="form-check-label" for="eventCheck"><i class="fa-solid fa-bolt"></i> Event</label>
+                        </div>
+                        <div class="form-check">
+                            <input onchange="updateTable()" class="form-check-input" type="checkbox" value="" id="receiveCheck" checked>
+                            <label class="form-check-label" for="receiveCheck"><i class="fa-solid fa-hand-holding-dollar"></i> Received</label>
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="" id="fallbackCheck" checked>
+                            <label class="form-check-label" for="fallbackCheck"><i class="fa-solid fa-rotate-left"></i> Fallback</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+    
+    <div id="abiTable">
+        <table class="mt-5 table">
+            <thead>
+                <tr>
+                    <th class="text-left pe-4">Type</th>
+                    <th class="text-center ps-2 pe-2">Mutability</th>
+                    <th class="ps-2 pe-2">Name</th>
+                    <th class="text-center ps-2 pe-2" title="Is the event anonymous?">Anonymous</th>
+                </tr>
+            </thead>
+            <tbody id="abiTableBody">
+
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    var contractFunctions = [];
+
+    function onAbiFunctionLoad()
+    {
+        var fileInput = document.getElementById("abiFunctionFile");
+        if(fileInput.files.length == 0) alert("No file found.");
+        var file = fileInput.files[0];
+
+        var fr = new FileReader();
+        fr.onload = function () 
+        {
+            contractFunctions = JSON.parse(fr.result);
+            updateTable();
+        }
+
+        fr.readAsText(file);
+    }
+
+    function updateTable(){
+        var result ="";
+        contractFunctions.forEach(c => {
+            var row = buildContractRow(c);
+            if(row)
+            result += row; 
+        });
+        document.getElementById('abiTableBody')
+            .innerHTML = result;
+    }
+
+    function buildContractRow(contractFunction)
+    {
+        var name = contractFunction["name"];
+
+        var showConstructors = document.getElementById("constructorCheck").checked;
+        var showEvents = document.getElementById("eventCheck").checked;
+        var showFunctions = document.getElementById("functionCheck").checked;
+        var showReceives = document.getElementById("receiveCheck").checked;
+        var showFallbacks = document.getElementById("fallbackCheck").checked;
+        var search = document.getElementById("filterTextBox").value;
+        
+        if (search != undefined && search != "" && name != undefined && !name.toLowerCase().includes(search.toLowerCase())) return;
+
+        var type = contractFunction["type"];
+
+        if(!showConstructors && type == "constructor") return;
+        console.log(showConstructors);
+
+        if (!showFunctions && type == "function") return;
+        if (!showEvents && type == "event") return;
+        if (!showReceives && type == "receive") return;
+        if (!showFallbacks && type == "fallback") return;
+
+        var typeIcon = type == "event" ? "fa-solid fa-bolt" : 
+                       type == "constructor" ? "fa-solid fa-hammer" : 
+                       type == "function" ? "fa-solid fa-code" :
+                       type == "receive" ? "fa-solid fa-hand-holding-dollar" :
+                       type == "fallback" ? "fa-solid fa-rotate-left" :
+                            "fa-regular fa-eye";
+
+
+        var anonymous = contractFunction["anonymous"];
+        var anonymousIcon = anonymous == undefined ? "":
+                            anonymous == true ? "fa-solid fa-check text-success":
+                            "fa-solid fa-xmark text-danger";
+
+
+        var stateMutability = contractFunction["stateMutability"]
+        var stateMutabilityIcon = stateMutability == "pure"? "fa-solid fa-calculator":
+                                  stateMutability == "payable" ? "fa-solid fa-dollar" :
+                                  stateMutability == "view" ? "fa-regular fa-eye" :
+                                  stateMutability == "nonpayable" ? "fa-solid fa-play" :
+                                  stateMutability == undefined ? "": "fa-solid fa-question";
+
+
+        return "<tr>"+
+            "<td class=\"text-left pl-1 pr-1\"><i title=\"" + type + "\" class=\"" + typeIcon + "\"/></td>" +
+            "<td class=\"text-center pl-1 pr-1\"><i title=\"" + stateMutability + "\" class=\"" + stateMutabilityIcon + "\"/></td>" +
+            "<td>" + name + "</td>" +
+            "<td class=\"text-center\"><i class=\"" + anonymousIcon + "\"/></td>" +
+                "</tr>";
+    }
+</script>
